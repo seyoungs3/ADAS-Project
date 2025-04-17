@@ -319,9 +319,9 @@ ylim([-20 80]);  % y축 범위 고정
     % 속도 그래프 subplot(3행 4열)
     subplot(6,5,[24 25 29 30]) ;
       cla;
-    plot(i_log, rel_vel_log, 'r');
+    plot(i_log, rel_vel_log - Speed2D(i), 'r');
   xlim([i-1000 i]);  % i는 현재 프레임 인덱스
-ylim([-20 60]);  % y축 범위 고정
+ylim([-20 20]);  % y축 범위 고정
     title('상대 속도');
     % xlabel('샘플');
     ylabel('Δv [m/s]');
