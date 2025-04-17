@@ -6,6 +6,10 @@ load testset1.mat
 
 x_temp = 0:0.1:60;
 
+% 이미지 미리 불러오기
+good_img = imread('img/good.png');
+bad_img = imread('img/bad.png');
+
 % 차선 정보
 c0_l = LaneMarkPosition_Lh_ME;
 c1_l = LaneMarkHeadAngle_Lh_ME;
@@ -70,6 +74,12 @@ for i = 64000:100:240000
     y_path = c2_pred(i) * x_temp.^2;
 
     draw_veh(0, 0, -pi/2, 2, 4.5, 'b', 1);
+     % 내 차량 속도 표시
+    ego_velx = Speed2D(i);
+    % 내 속도
+    text(0, 5, sprintf('%.1f m/s', ego_velx), ...
+        'Color', 'b', 'FontSize', 10, 'FontWeight', 'Bold', ... 
+        'HorizontalAlignment', 'center');
     hold on
     grid on
 
@@ -120,6 +130,14 @@ for i = 64000:100:240000
     for k = 1:length(veh_posX)
         if k == cipv_idx
             draw_veh(veh_posX(k), veh_posY(k), -pi/2, 2, 4.5, 'g', 2); % CIPV 강조
+            % 데이터에서 차량 속도 가져오기 (예: VelX01, VelX02 등)
+            cipv_velx_array = [VelX01(i), VelX02(i), VelX03(i), VelX04(i), VelX05(i), VelX06(i), VelX07(i), VelX08(i)];
+            cipv_velx = cipv_velx_array(cipv_idx);  % 해당 차량의 속도 가져오기
+
+            % 차량 위에 속도 텍스트 표시
+            text(veh_posX(k), veh_posY(k) + 5, sprintf('%.1f m/s', cipv_velx + ego_velx), ...
+                'Color', 'r', 'FontSize', 10, 'FontWeight', 'Bold', ...
+                'HorizontalAlignment', 'center');
         else
             draw_veh(veh_posX(k), veh_posY(k), -pi/2, 2, 4.5, 'k', 1);
         end
@@ -176,16 +194,20 @@ for i = 64000:100:240000
     is_straight = angle_diff < deg2rad(5);  % 직선도로 판단 기준
     is_curve = angle_diff > deg2rad(20);
 
+    subplot(6,5,17)
     % 집중도 경고 조건
     if is_straight && high_torque_ratio > 0.9
         focus_warning = '주의! 운전자 집중도 낮음';
         warning_color = 'r';
+        imshow(bad_img)
 
     elseif is_curve && low_torque_ratio > 0.9
         focus_warning = '주의! 운전자 집중도 낮음';
         warning_color = 'r';
+        imshow(bad_img)
     else
         focus_warning = '';
+        imshow(good_img)
     end
 
 
@@ -281,24 +303,33 @@ for i = 64000:100:240000
         end
         %%
 
-        % 거리 그래프 subplot(2행 4열)
-        subplot(6,5,[14 15 19 20] ) ;
-        plot(i_log, rel_dist_log, 'b');
-        title('CIPV 거리');
-        xlabel('샘플');
-        ylabel('거리 [m]');
-        grid on;
-        drawnow;
-        %%
-        % 속도 그래프 subplot(3행 4열)
-        subplot(6,5,[24 25 29 30]) ;
-        plot(i_log, rel_vel_log, 'r');
-        title('상대 속도');
-        xlabel('샘플');
-        ylabel('Δv [m/s]');
-        grid on;
+      % 거리 그래프 subplot(2행 4열)
+     subplot(6,5,[14 15 19 20] ) ;
+     cla;
+    plot(i_log, rel_dist_log, 'b');
+ xlim([i-1000 i]);  % i는 현재 프레임 인덱스
+ylim([-20 80]);  % y축 범위 고정
+    title('CIPV 거리');
+    % xlabel('샘플');
+    ylabel('거리 [m]');
+     grid on;
+     drawnow;
+%% 
 
-        drawnow;
+    % 속도 그래프 subplot(3행 4열)
+    subplot(6,5,[24 25 29 30]) ;
+      cla;
+    plot(i_log, rel_vel_log, 'r');
+  xlim([i-1000 i]);  % i는 현재 프레임 인덱스
+ylim([-20 60]);  % y축 범위 고정
+    title('상대 속도');
+    % xlabel('샘플');
+    ylabel('Δv [m/s]');
+     grid on;
+
+     drawnow;
+
+%% 
 
         % 도로 기울기 계산, 플롯
         road_slope_deg(i) = AnglePitch(i) * pi / 180;
@@ -341,28 +372,113 @@ for i = 64000:100:240000
         end
         title('TTC 단계 표시');
 
-        %% 숫자 표시 개선
+        
         %% 숫자 표시 개선
         subplot(6,5,13);
         cla;
         axis off;
 
-        ttc_label = {'1 \color{green}안전', '2 \color[rgb]{1.0,0.6,0.0}주의', '3 \color{red}위험'};
+      % TTC 시간값 텍스트 설정
+if isinf(ttc)
+    ttc_text = 'TTC: ∞';
+elseif isnan(ttc)
+    ttc_text = 'TTC: N/A';
+else
+    ttc_text = sprintf('TTC: %.2f s', ttc);
+end
 
-        % ttc_label = {'\color{green}1 \color{green}✅정상', '\color[rgb]{1.0,0.6,0.0}2 \color[rgb]{1.0,0.6,0.0}⚠️주의', '\color{red}3 \color{red}🚨위험'};
+% TTC 단계 텍스트 설정
+ttc_label = {'\color{green}✅ 안전', ...
+             '\color[rgb]{1.0,0.6,0.0}⚠ 주의', ...
+             '\color{red}🚨 위험'};
 
-        if ttc_stage >= 1 && ttc_stage <= 3
-            ttc_text = ttc_label{ttc_stage};
-        else
-            ttc_text = '미 인식';
-            colors = {'[0.6 0.6 0.6]', '[0.6 0.6 0.6]', '[0.6 0.6 0.6]'}; % 기본 회색
-        end
+if ttc_stage >= 1 && ttc_stage <= 3
+    ttc_stage_text = ttc_label{ttc_stage};
+else
+    ttc_stage_text = '\color{gray}미 인식';
+end
 
-        text(0.5, 0.5, ttc_text, 'FontSize', 20, 'FontWeight', 'bold', ...
-            'HorizontalAlignment', 'center', 'Interpreter', 'tex');
-        title('TTC 단계 숫자');
+% TTC 시간 텍스트 출력 (위)
+text(0.5, 0.65, ttc_text, ...
+     'FontSize', 18, 'FontWeight', 'bold', ...
+     'HorizontalAlignment', 'center');
 
-        hold off;
-        drawnow;
+% TTC 단계 텍스트 출력 (아래)
+text(0.5, 0.1, ttc_stage_text, ...
+     'FontSize', 20, 'FontWeight', 'bold', ...
+     'HorizontalAlignment', 'center', ...
+     'Interpreter', 'tex');
 
+title('TTC 시간값');
+
+    hold off;
+    drawnow;
+
+  %% 자차 속도(계기판)
+    subplot(6, 5, [21 26]);
+    draw_speedometer(Speed2D(i));  % 첫 번째 속도로 계기판과 바늘을 그리기
+
+
+    wheel_speeds = [WHL_SPD_FL(i), WHL_SPD_FR(i), WHL_SPD_RL(i), WHL_SPD_RR(i)] / 3.6;
+    slip_std = std(wheel_speeds);
+    is_raining = (CF_Gway_RainSnsState(i)==1 || CF_Gway_WiperAutoSw(i)>0);
+    slip_thresh = is_raining * 1.5 + (~is_raining) * 3.0;
+    if slip_std > slip_thresh
+        slip_warning = '❗ 슬립 감지 - ACC 해제';
+        warning_color = 'r';
+    else
+        slip_warning = '';
+    end
+
+
+    %% 조성빈 부분
+    
+    subplot(6,5,18)
+    cla;
+    axis off;
+    hold on;
+
+    % 상태 텍스트 기본값
+    slip_text = '슬립 없음';
+    rain_text = '맑음';
+    wiper_text = 'Wiper OFF';
+
+    % 색상 설정
+    slip_color = [0 0.6 0];     % 초록
+    rain_color = [0 0.6 0];
+    wiper_color = [0 0.6 0];
+
+     wheel_speeds = [WHL_SPD_FL(i), WHL_SPD_FR(i), WHL_SPD_RL(i), WHL_SPD_RR(i)];
+
+max_spd = max(wheel_speeds);
+min_spd = min(wheel_speeds);
+slip_diff = max_spd - min_spd;
+slip_threshold = 5;  % 슬립 기준 임계값 [km/h]
+
+    % 슬립 상태
+    % if slip_std > slip_thresh
+    if slip_diff > slip_threshold
+        slip_text = '슬립 감지';
+        slip_color = [1 0 0];  % 빨강
+    end
+
+    % 우천 상태
+    if is_raining
+        rain_text = '비 감지';
+        rain_color = [0.1 0.4 1];  % 파랑
+    end
+
+    % 와이퍼 상태
+    if CF_Gway_WiperAutoSw(i) > 0
+        wiper_text = 'Wiper ON';
+        wiper_color = [0.3 0.3 0.9];
+    end
+
+    % 텍스트로 시각화
+    text(0.1, 0.8, ['슬립 상태: ' slip_text], 'Color', slip_color, 'FontSize', 12, 'FontWeight', 'bold');
+    text(0.1, 0.5, ['우천 감지: ' rain_text], 'Color', rain_color, 'FontSize', 12, 'FontWeight', 'bold');
+    text(0.1, 0.2, ['와이퍼: ' wiper_text], 'Color', wiper_color, 'FontSize', 12, 'FontWeight', 'bold');
+    title('차량 환경 상태 표시', 'FontSize', 13)
+    hold off;
+    drawnow
     end
