@@ -74,11 +74,11 @@ for i = 64000:100:240000
     y_path = c2_pred(i) * x_temp.^2;
 
     draw_veh(0, 0, -pi/2, 2, 4.5, 'b', 1);
-     % 내 차량 속도 표시
+    % 내 차량 속도 표시
     ego_velx = Speed2D(i);
     % 내 속도
     text(0, 5, sprintf('%.1f m/s', ego_velx), ...
-        'Color', 'b', 'FontSize', 10, 'FontWeight', 'Bold', ... 
+        'Color', 'b', 'FontSize', 10, 'FontWeight', 'Bold', ...
         'HorizontalAlignment', 'center');
     hold on
     grid on
@@ -109,7 +109,7 @@ for i = 64000:100:240000
                 y_right = tmp;
             end
 
-            % 조건 만족 여부
+            % 조건 만족 여부(동일 차선, 경로 이내)
             if y_obj < y_left && y_obj > y_right && abs(y_obj - y_pred) < 3.0
                 cipv_candidate_counter(k) = cipv_candidate_counter(k) + 1;
             else
@@ -268,153 +268,158 @@ for i = 64000:100:240000
 
         drawnow
     end
-        %%
+    %%
 
-        subplot(6, 5, [11 16])
-        % 현재 위치 인덱스 i는 정의되어 있다고 가정
-        currentLat = PosLat(i);
-        currentLon = PosLon(i);
+    subplot(6, 5, [11 16])
+    % 현재 위치 인덱스 i는 정의되어 있다고 가정
+    currentLat = PosLat(i);
+    currentLon = PosLon(i);
 
-        % 지도 위에 현재 위치만 표시
-        geoplot(currentLat, currentLon, 'ro', 'LineWidth', 2, 'MarkerSize', 10);
-        hold on
-        geobasemap streets % 지도 스타일 설정
+    % 지도 위에 현재 위치만 표시
+    geoplot(currentLat, currentLon, 'ro', 'LineWidth', 2, 'MarkerSize', 10);
+    hold on
+    geobasemap streets % 지도 스타일 설정
 
-        % 줌 인: 현재 위치를 중심으로 좁은 범위 설정
-        zoomRange = 0.001; % 숫자가 작을수록 더 확대됨
-        geolimits([currentLat - zoomRange, currentLat + zoomRange], ...
-            [currentLon - zoomRange, currentLon + zoomRange]);
-        hold off;
-        drawnow
+    % 줌 인: 현재 위치를 중심으로 좁은 범위 설정
+    zoomRange = 0.001; % 숫자가 작을수록 더 확대됨
+    geolimits([currentLat - zoomRange, currentLat + zoomRange], ...
+        [currentLon - zoomRange, currentLon + zoomRange]);
+    hold off;
+    drawnow
 
 
-        %%
-        % hold on
-        % 상대거리/속도 기록
-        i_log(end+1) = i;
-        rel_dist_log(end+1) = rel_dist;
-        rel_vel_log(end+1) = rel_vel;
-        % ttc_level_log(end+1) = ttc_stage;
+    %%
+    % hold on
+    % 상대거리/속도 기록
+    i_log(end+1) = i;
+    rel_dist_log(end+1) = rel_dist;
+    rel_vel_log(end+1) = rel_vel;
+    % ttc_level_log(end+1) = ttc_stage;
 
-        if cipv_idx > 0
-            ttc_level_log(end+1) = ttc_stage;
-        else
-            ttc_level_log(end+1) = NaN;  % 또는 0 등으로 대체 가능
-        end
-        %%
+    if cipv_idx > 0
+        ttc_level_log(end+1) = ttc_stage;
+    else
+        ttc_level_log(end+1) = NaN;  % 또는 0 등으로 대체 가능
+    end
+    %%
 
-      % 거리 그래프 subplot(2행 4열)
-     subplot(6,5,[14 15 19 20] ) ;
-     cla;
+    % 거리 그래프 subplot(2행 4열)
+    subplot(6,5,[14 15 19 20] ) ;
+    cla;
     plot(i_log, rel_dist_log, 'b');
- xlim([i-1000 i]);  % i는 현재 프레임 인덱스
-ylim([-20 80]);  % y축 범위 고정
+    xlim([i-1000 i]);  % i는 현재 프레임 인덱스
+    ylim([-20 80]);  % y축 범위 고정
     title('CIPV 거리');
     % xlabel('샘플');
     ylabel('거리 [m]');
-     grid on;
-     drawnow;
-%% 
+    grid on;
+    drawnow;
+    %%
 
     % 속도 그래프 subplot(3행 4열)
     subplot(6,5,[24 25 29 30]) ;
-      cla;
+    cla;
     plot(i_log, rel_vel_log - Speed2D(i), 'r');
-  xlim([i-1000 i]);  % i는 현재 프레임 인덱스
-ylim([-20 20]);  % y축 범위 고정
+    xlim([i-1000 i]);  % i는 현재 프레임 인덱스
+    ylim([-20 20]);  % y축 범위 고정
     title('상대 속도');
     % xlabel('샘플');
     ylabel('Δv [m/s]');
-     grid on;
+    grid on;
 
-     drawnow;
+    drawnow;
 
-%% 
+    %%
 
-        % 도로 기울기 계산, 플롯
-        road_slope_deg(i) = AnglePitch(i) * pi / 180;
-        subplot(6,5,[22,23,27,28]);
-        plot(road_slope_deg, 'LineWidth', 1.5);
-        xlabel('Time (s)');
-        ylabel('Road Slope (°)');
-        title('Road Inclination Analysis');
-        grid on;
-        ylim([-1 1]);
-        drawnow;
+    % 도로 기울기 계산, 플롯
+    road_slope_deg(i) = AnglePitch(i) * pi / 180;
+    if road_slope_deg(i) > 5
+        is_flat(i) = 0;
+    else
+        is_flat(i) = 1;
+    end
+    subplot(6,5,[22,23,27,28]);
+    plot(road_slope_deg, 'LineWidth', 1.5);
+    xlabel('Time (s)');
+    ylabel('Road Slope (°)');
+    title('Road Inclination Analysis');
+    grid on;
+    ylim([-1 1]);
+    drawnow;
 
-        %%
-        % subplot(5,5,7) - 배터리형 램프 3단계
-        subplot(6,5,12);
-        cla;
-        axis off;
-        hold on;
+    %%
+    % subplot(5,5,7) - 배터리형 램프 3단계
+    subplot(6,5,12);
+    cla;
+    axis off;
+    hold on;
 
-        % 박스 위치 설정
-        box_x = 	[0.2, 0.4, 0.6];  % x 위치 (왼 → 오)
-        box_y = 0.4;               % y 고정
-        w = 0.2; h = 0.3;         % width, height
+    % 박스 위치 설정
+    box_x = 	[0.2, 0.4, 0.6];  % x 위치 (왼 → 오)
+    box_y = 0.4;               % y 고정
+    w = 0.2; h = 0.3;         % width, height
 
-        % 색상 지정
-        colors = {'[0.6 0.6 0.6]', '[0.6 0.6 0.6]', '[0.6 0.6 0.6]'}; % 기본 회색
-        ttc_text = '미 인식';
-        if ttc_stage == 1
-            colors{1} = 'g';  % 초록 1칸
-        elseif ttc_stage == 2
-            colors{1} = 'y'; colors{2} = 'y';  % 노랑 2칸
-        elseif ttc_stage == 3
-            colors{1} = 'r'; colors{2} = 'r'; colors{3} = 'r';  % 빨강 3칸
-        end
+    % 색상 지정
+    colors = {'[0.6 0.6 0.6]', '[0.6 0.6 0.6]', '[0.6 0.6 0.6]'}; % 기본 회색
+    ttc_text = '미 인식';
+    if ttc_stage == 1
+        colors{1} = 'g';  % 초록 1칸
+    elseif ttc_stage == 2
+        colors{1} = 'y'; colors{2} = 'y';  % 노랑 2칸
+    elseif ttc_stage == 3
+        colors{1} = 'r'; colors{2} = 'r'; colors{3} = 'r';  % 빨강 3칸
+    end
 
-        % 박스 그리기
-        for n = 1:3
-            rectangle('Position', [box_x(n), box_y, w, h], ...
-                'FaceColor', colors{n}, 'EdgeColor', 'k', 'LineWidth', 1.5);
-        end
-        title('TTC 단계 표시');
+    % 박스 그리기
+    for n = 1:3
+        rectangle('Position', [box_x(n), box_y, w, h], ...
+            'FaceColor', colors{n}, 'EdgeColor', 'k', 'LineWidth', 1.5);
+    end
+    title('TTC 단계 표시');
 
-        
-        %% 숫자 표시 개선
-        subplot(6,5,13);
-        cla;
-        axis off;
 
-      % TTC 시간값 텍스트 설정
-if isinf(ttc)
-    ttc_text = 'TTC: ∞';
-elseif isnan(ttc)
-    ttc_text = 'TTC: N/A';
-else
-    ttc_text = sprintf('TTC: %.2f s', ttc);
-end
+    %% 숫자 표시 개선
+    subplot(6,5,13);
+    cla;
+    axis off;
 
-% TTC 단계 텍스트 설정
-ttc_label = {'\color{green}✅ 안전', ...
-             '\color[rgb]{1.0,0.6,0.0}⚠ 주의', ...
-             '\color{red}🚨 위험'};
+    % TTC 시간값 텍스트 설정
+    if isinf(ttc)
+        ttc_text = 'TTC: ∞';
+    elseif isnan(ttc)
+        ttc_text = 'TTC: N/A';
+    else
+        ttc_text = sprintf('TTC: %.2f s', ttc);
+    end
 
-if ttc_stage >= 1 && ttc_stage <= 3
-    ttc_stage_text = ttc_label{ttc_stage};
-else
-    ttc_stage_text = '\color{gray}미 인식';
-end
+    % TTC 단계 텍스트 설정
+    ttc_label = {'\color{green}✅ 안전', ...
+        '\color[rgb]{1.0,0.6,0.0}⚠ 주의', ...
+        '\color{red}🚨 위험'};
 
-% TTC 시간 텍스트 출력 (위)
-text(0.5, 0.65, ttc_text, ...
-     'FontSize', 18, 'FontWeight', 'bold', ...
-     'HorizontalAlignment', 'center');
+    if ttc_stage >= 1 && ttc_stage <= 3
+        ttc_stage_text = ttc_label{ttc_stage};
+    else
+        ttc_stage_text = '\color{gray}미 인식';
+    end
 
-% TTC 단계 텍스트 출력 (아래)
-text(0.5, 0.1, ttc_stage_text, ...
-     'FontSize', 20, 'FontWeight', 'bold', ...
-     'HorizontalAlignment', 'center', ...
-     'Interpreter', 'tex');
+    % TTC 시간 텍스트 출력 (위)
+    text(0.5, 0.65, ttc_text, ...
+        'FontSize', 18, 'FontWeight', 'bold', ...
+        'HorizontalAlignment', 'center');
 
-title('TTC 시간값');
+    % TTC 단계 텍스트 출력 (아래)
+    text(0.5, 0.1, ttc_stage_text, ...
+        'FontSize', 20, 'FontWeight', 'bold', ...
+        'HorizontalAlignment', 'center', ...
+        'Interpreter', 'tex');
+
+    title('TTC 시간값');
 
     hold off;
     drawnow;
 
-  %% 자차 속도(계기판)
+    %% 자차 속도(계기판)
     subplot(6, 5, [21 26]);
     draw_speedometer(Speed2D(i));  % 첫 번째 속도로 계기판과 바늘을 그리기
 
@@ -422,8 +427,8 @@ title('TTC 시간값');
     wheel_speeds = [WHL_SPD_FL(i), WHL_SPD_FR(i), WHL_SPD_RL(i), WHL_SPD_RR(i)] / 3.6;
     slip_std = std(wheel_speeds);
     is_raining = (CF_Gway_RainSnsState(i)==1 || CF_Gway_WiperAutoSw(i)>0);
-    slip_thresh = is_raining * 1.5 + (~is_raining) * 3.0;
-    if slip_std > slip_thresh
+    slip_thresh = is_raining * 3 + (~is_raining) * 1.5;
+    if (slip_std > slip_thresh) && (is_flat(i))
         slip_warning = '❗ 슬립 감지 - ACC 해제';
         warning_color = 'r';
     else
@@ -432,7 +437,7 @@ title('TTC 시간값');
 
 
     %% 조성빈 부분
-    
+
     subplot(6,5,18)
     cla;
     axis off;
@@ -448,12 +453,12 @@ title('TTC 시간값');
     rain_color = [0 0.6 0];
     wiper_color = [0 0.6 0];
 
-     wheel_speeds = [WHL_SPD_FL(i), WHL_SPD_FR(i), WHL_SPD_RL(i), WHL_SPD_RR(i)];
+    wheel_speeds = [WHL_SPD_FL(i), WHL_SPD_FR(i), WHL_SPD_RL(i), WHL_SPD_RR(i)];
 
-max_spd = max(wheel_speeds);
-min_spd = min(wheel_speeds);
-slip_diff = max_spd - min_spd;
-slip_threshold = 5;  % 슬립 기준 임계값 [km/h]
+    max_spd = max(wheel_speeds);
+    min_spd = min(wheel_speeds);
+    slip_diff = max_spd - min_spd;
+    slip_threshold = 5;  % 슬립 기준 임계값 [km/h]
 
     % 슬립 상태
     % if slip_std > slip_thresh
@@ -481,4 +486,4 @@ slip_threshold = 5;  % 슬립 기준 임계값 [km/h]
     title('차량 환경 상태 표시', 'FontSize', 13)
     hold off;
     drawnow
-    end
+end
