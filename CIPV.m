@@ -2,7 +2,7 @@ clc
 close all
 clear all
 clear cipv_candidate_counter
-load testset1.mat
+load testset.mat
 
 x_temp = 0:0.1:60;
 
